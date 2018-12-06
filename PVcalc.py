@@ -20,6 +20,37 @@ def popUpMsg(msg):
 
 	popup.mainloop()
 
+
+def calcFV(pv,r,t):
+	return pv*(1+r)**t
+
+def calcFVA(c,r,t):
+	return (c/r)*((1+r)**t)
+
+def calcPV(fv,r,t):
+	return fv/(1+r)**t
+
+def calcPVA(c,r,t):
+	return (c/r)*(1-(1/(1+r)**t))
+
+def calcT(pv,fv,r):
+	return math.log10(fv/pv)/math.log10(1+r)
+
+def calcTA(pv,c,r,fv):
+	if fv == None:
+		return math.log10(1/(1-(1/c)*pv*r))/math.log10(1+r)
+	elif pv == None:
+		return math.log10(fv*r/c+1)/math.log10(1+r)
+
+def calcR(pv,fv,t):
+	return ((fv/pv)**(1/t))-1
+
+def calcRA(pv,c,t):
+	return 
+
+def calcC(pv,r,t):
+	return (pv*r)/(1-(1/(1+r)**t))
+
 class PVcalcApp(tk.Tk):
 
 	def __init__(self,*args,**kwargs):
@@ -35,7 +66,7 @@ class PVcalcApp(tk.Tk):
 
 		self.frames = {}
 
-		for F in (StartPage,LumpSumPage,AnnuityPage):
+		for F in (StartPage,LumpSumPage,AnnuityPage,PerpituityPage):
 
 			frame = F(container,self)
 
@@ -66,7 +97,7 @@ class StartPage(tk.Frame):
 		button2 = tk.Button(self,text='Annuity',command=lambda:controller.showFrame(AnnuityPage))
 		button2.pack()
 
-		button3 = tk.Button(self,text='Perpituity')
+		button3 = tk.Button(self,text='Perpituity',command=lambda:controller.showFrame(PerpituityPage))
 		button3.pack()
 
 		button4 = tk.Button(self,text='Quit',command=lambda:quit())
@@ -139,19 +170,19 @@ class LumpSumPage(tk.Frame):
 			popUpMsg('Please enter a minimum of 3 fields.')
 		else:
 			if FV == None:
-				FV = PV*(1+r)**t
+				FV = calcFV(PV,r,t)
 				self.FVEntry.insert(0,str(round(FV,2)))
 
 			if t == None:
-				t = math.log10(FV/PV)/math.log10(1+r)
+				t = calcT(PV,FV,r)
 				self.tEntry.insert(0,str(round(t,2)))
 
 			if r == None:
-				r = ((FV/PV)**(1/t))-1
+				r = calcR(PV,FV,t)
 				self.rEntry.insert(0,str(round(r,4)*100))
 
 			if PV == None:
-				PV = FV/(1+r)**t
+				PV = calcPV(FV,r,t)
 				self.PVEntry.insert(0,str(round(PV,2)))
 
 	def clearall(self):
@@ -211,10 +242,10 @@ class AnnuityPage(tk.Frame):
 		button3 = tk.Button(self,text='Clear',command=self.clearall)
 		button4 = tk.Button(self,text='Quit',command=lambda:quit())
 
-		button1.grid(row=5,column=0,sticky='W',pady=4)
-		button2.grid(row=5,column=1,sticky='W',pady=4)
-		button3.grid(row=5,column=2,sticky='W',pady=4)
-		button4.grid(row=5,column=3,sticky='W',pady=4)
+		button1.grid(row=6,column=0,sticky='W',pady=4)
+		button2.grid(row=6,column=1,sticky='W',pady=4)
+		button3.grid(row=6,column=2,sticky='W',pady=4)
+		button4.grid(row=6,column=3,sticky='W',pady=4)
 
 	def calculate(self):
 
@@ -231,7 +262,7 @@ class AnnuityPage(tk.Frame):
 		except ValueError:
 			r = None
 		try:
-			C = floar(self.CEntry.get())
+			C = float(self.CEntry.get())
 		except ValueError:
 			C = None
 		try:
@@ -243,29 +274,59 @@ class AnnuityPage(tk.Frame):
 
 		if len(empty) == 0:
 			popUpMsg('Please remove one field to calculate.')
-		elif len(empty) == 2 and FV != None and PV != None:
-			popUpMsg('Please enter a minimum of 4 fields to calculate future value.')
-		elif len(empty) > 2:
-			popup
-		else:
-			if FV == None and PV == None:
-				#Calculate PV and FV
-			elif FV == None:
-				#Calculate FV
-			elif PV == None:
-				#Calculate PV
-
-			if t == None:
-				t = math.log10(FV/PV)/math.log10(1+r)
-				self.tEntry.insert(0,str(round(t,2)))
-
-			if r == None:
-				r = ((FV/PV)**(1/t))-1
-				self.rEntry.insert(0,str(round(r,4)*100))
-
+		elif len(empty) == 1:
 			if PV == None:
-				PV = FV/(1+r)**t
+				PV = calcPVA(C,r,t)
 				self.PVEntry.insert(0,str(round(PV,2)))
+			elif FV == None:
+				FV = calcFV(PV,r,t)
+				self.FVEntry.insert(0,str(round(FV,2)))
+			elif t == None:
+				t = calcTA(PV,C,r,None)
+				self.tEntry.insert(0,str(round(t,2)))
+			elif r == None:
+				popUpMsg('Cannot calculate r: Not yet supported')
+			elif C == None:
+				C = calcC(PV,r,t)
+				self.CEntry.insert(0,str(round(C,2)))
+		elif len(empty) == 2:
+			if FV == None:
+				if PV == None:
+					PV = calcPVA(C,r,t)
+					self.PVEntry.insert(0,str(round(PV,2)))
+				elif t == None:
+					t = calcTA(PV,C,r)
+					self.tEntry.insert(0,str(round(t,2)))
+				elif C == None:
+					C = calcC(PV,r,t)
+					self.CEntry.insert(0,str(round(C,2)))
+				elif r == None:
+					popUpMsg('Cannot calculate r: Not yet supported')	
+				FV = calcFV(PV,t,r)
+				self.FVEntry.insert(0,str(round(FV,2)))
+			elif PV == None:
+				if C == None:
+					PV = calcPV(FV,r,t)
+					C = calcC(PV,r,t)
+					self.PVEntry.insert(0,str(round(PV,2)))
+					self.CEntry.insert(0,str(round(C,2)))
+				elif t == None:
+					t = calcTA(None,C,r,FV)
+					self.tEntry.insert(0,str(round(t,2)))
+				elif r == None:
+					popUpMsg('Cannot calculate r: Not yet supported')
+			elif C == None:
+				if r == None:
+					popUpMsg('Cannot calculate r: Not yet supported')
+				elif t == None:
+					t = calcT(PV,FV,r)
+					C = calcC(PV,r,t)
+					self.tEntry.insert(0,str(round(t,2)))
+					self.CEntry.insert(0,str(round(C,2)))
+			elif r == None:
+				popUpMsg('Cannot calculate r: Not yet supported')
+		else:
+			popUpMsg('Please enter a minimum of 3 feilds.')
 
 	def clearall(self):
 
@@ -284,6 +345,13 @@ class AnnuityPage(tk.Frame):
 				return False
 		else:
 			return False
+
+class PerpituityPage(tk.Frame):
+
+	def __init__(seld,parent,controller):
+
+		label1 = tk.Label(self,text='Not yet...',font=LARGE_FONT)
+		label1.pack()
 
 app = PVcalcApp()
 app.mainloop()
